@@ -119,6 +119,32 @@ router.get('/getPage', (request, response) => {
     });
 });
 
+router.post('/translate', (request, response) => {
+    const {Translate} = require('@google-cloud/translate').v2;
+    const translate = new Translate();
+
+    async function translateText(params) {
+        let {text, target} = params;
+        let translation = await translate.translate(text, target);
+        
+        if (translation && translation[1].data.translations) {
+            response.send({
+                success: true,
+                data: translation[1].data.translations
+            });
+        } else {
+            response.send({
+                success: false
+            });
+        }
+    }
+
+    translateText({
+        text: request.body.data.text,
+        target: 'en'
+    });
+});
+
 // router.get('/deletePrompt', (request, response) => {
 //     mongo.connect(`${databaseConfig.url}/${databaseConfig.db}`, { useUnifiedTopology: true }, function (error, connection) {
 //         if (error) {
