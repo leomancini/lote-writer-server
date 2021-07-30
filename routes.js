@@ -124,7 +124,7 @@ router.post('/translate', (request, response) => {
     const translate = new Translate();
 
     async function translateText(params) {
-        let {text, target} = params;
+        let { text, target } = params;
         let translation = await translate.translate(text, target);
         
         if (translation && translation[1].data.translations) {
@@ -139,10 +139,17 @@ router.post('/translate', (request, response) => {
         }
     }
 
-    translateText({
-        text: request.body.data.text,
-        target: 'en'
-    });
+    if (request.body.data && request.body.data.text) {
+        translateText({
+            text: request.body.data.text,
+            target: 'en'
+        });
+    } else {
+        response.send({
+            success: false,
+            reason: 'error - no text specified'
+        });
+    }
 });
 
 // router.get('/deletePrompt', (request, response) => {
