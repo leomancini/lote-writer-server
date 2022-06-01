@@ -10,7 +10,7 @@ const mongodb = require('mongodb');
 const mongo = mongodb.MongoClient;
 
 const databaseConfig = {
-    url: 'mongodb://localhost:27017',
+    url: 'mongodb://127.0.0.1:27017',
     db: 'lote-writer'
 }
 
@@ -40,20 +40,23 @@ router.post('/addPage', (request, response) => {
             response.send({ success: false, reason: 'error - see console' });
             console.error(error);
         } else {
-            connection.db(databaseConfig.db).collection('pages').insertOne({
-                author_ip: request.connection.remoteAddress,
-                date_added: Date.now(),
-                data: request.body.data
-            }, function (error, inserted) {
-                if (error) {
-                    response.send({ success: false, reason: 'error - see console' });
-                    console.error(error);
-                } else {
-                    response.send({ success: true, id: inserted.insertedId });
-                }
+            connection.db(databaseConfig.db).collection('pages').insertOne(
+                {
+                    author_ip: request.connection.remoteAddress,
+                    date_added: Date.now(),
+                    data: request.body.data
+                },
+                function (error, inserted) {
+                    if (error) {
+                        response.send({ success: false, reason: 'error - see console' });
+                        console.error(error);
+                    } else {
+                        response.send({ success: true, id: inserted.insertedId });
+                    }
 
-                connection.close();
-            });
+                    connection.close();
+                }
+            );
         }
     });
 });
@@ -69,7 +72,7 @@ router.post('/updatePage', (request, response) => {
 
             connection.db(databaseConfig.db).collection('pages').updateOne(
                 {
-                    "_id": new mongodb.ObjectID(request.body.id)
+                    "_id": new mongodb.ObjectID(urlParams.id)
                 },
                 {
                     $set: {
@@ -77,6 +80,8 @@ router.post('/updatePage', (request, response) => {
                     }
                 },
                 function (error, result) {
+                    console.error(request.body.data);
+
                     if (error) {
                         response.send({ success: false, reason: 'error - see console' });
                         console.error(error);
@@ -85,7 +90,8 @@ router.post('/updatePage', (request, response) => {
                     }
 
                     connection.close();
-                });
+                }
+            );
         }
     });
 });
@@ -104,28 +110,51 @@ router.get('/getPage', (request, response) => {
                     "_id": new mongodb.ObjectID(urlParams.id)
                 },
                 function (error, result) {
-                if (error) {
-                    response.send({ success: false, reason: 'error - see console' });
-                    console.error(error);
-                } else if (result === null) {
-                    response.send({ success: false, reason: 'no results' });
-                } else {
-                    response.send({ success: true, page: result });
-                }
+                    if (error) {
+                        response.send({ success: false, reason: 'error - see console' });
+                        console.error(error);
+                    } else if (result === null) {
+                        response.send({ success: false, reason: 'no results' });
+                    } else {
+                        response.send({ success: true, page: result });
+                    }
 
-                connection.close();
-            });
+                    connection.close();
+                }
+            );
         }
     });
 });
 
 router.post('/translate', (request, response) => {
-    const {Translate} = require('@google-cloud/translate').v2;
+    const { Translate } = require('@google-cloud/translate').v2;
     const translate = new Translate();
 
+    async function getCharacterCandidates(params) {
+        const settings = {
+            numResults: 1
+        };
+
+        let request = await fetch(`https://www.google.com/inputtools/request?ime=pinyin&ie=utf-8&oe=utf-8&app=translate&num=${settings.numResults}&text=${params.pinyin}`);
+        let response = await request.json();
+
+        if (response && response[1] && response[1][0] && response[1][0][1]) {
+            return response[1][0][1];
+        } else {
+            return null;
+        }
+    }
+
     async function translateText(params) {
-        let { text, target } = params;
-        let translation = await translate.translate(text, target);
+        let text = params.text;
+
+        if (params.convertPinyin) {
+            let pinyin = params.text.replace(',', '，');
+
+            text = await getCharacterCandidates({ pinyin });
+        }
+
+        let translation = await translate.translate(text, params.target);
         
         if (translation && translation[1].data.translations) {
             response.send({
@@ -142,6 +171,7 @@ router.post('/translate', (request, response) => {
     if (request.body.data && request.body.data.text) {
         translateText({
             text: request.body.data.text,
+            convertPinyin: true,
             target: 'en'
         });
     } else {
