@@ -7,7 +7,7 @@
   "license": "ISC",
   "dependencies": {
     "@google-cloud/translate": "^6.2.3",
-    "express": "^4.17.1",
+    "express": "^4.21.0",
     "mongodb": "^3.6.2",
     "nanoid": "^3.1.20",
     "querystring": "^0.2.0",
