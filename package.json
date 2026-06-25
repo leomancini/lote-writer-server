@@ -6,7 +6,8 @@
   "author": "mancini@leo.gd",
   "license": "ISC",
   "overrides": {
-    "@tootallnate/once": "3.0.1"
+    "@tootallnate/once": "3.0.1",
+    "protobufjs": "^7.6.1"
   },
   "dependencies": {
     "@google-cloud/translate": "^9.3.0",
